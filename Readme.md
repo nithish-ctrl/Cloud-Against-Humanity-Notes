@@ -1,9 +1,11 @@
 # Cloud Against Humanity Notes
-----
+---
 
 First of all, for people who does not know 'Cloud against Humanity' repo, this the repo link : 
 
 We will refer to this as the source repo for now. 
+
+
 --- 
 
 This repo is basically the notes I make while reading the source repo.
@@ -17,3 +19,5 @@ The order of things :
 5. 
 6. 
 7. 
+
+Theres's separate folders created for each of these concepts and they involve the notes and the implementation. 
