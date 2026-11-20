@@ -12,7 +12,7 @@ I will try to implement things in the source repo while also record my thorughts
 The order of things : 
 1. Cloud
 2. Networking
-3. 
+3. Identity, Security and Zero trust
 4. 
 5. 
 6. 
