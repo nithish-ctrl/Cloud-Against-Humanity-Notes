@@ -60,6 +60,3 @@ You are responsible for :
 4. Every secret you create and where you put it. 
 5. Your account's password and MFA, and your tokens. 
 
-## Why DigitalOcean and not AWS
-
-
