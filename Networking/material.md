@@ -1,0 +1,47 @@
+# Networking Basics
+
+
+## Adresses : Public and Private
+Every device on a network has an IP address. There are two kinds that matter here.
+
+Private addresses only mean something inside one network. They come from three reserved ranges : 10.x.x.x, 172.16.x.x to 172.31.x.x, and 192.168.x.x. Home routers generally have 192.168.1.something addresses, millions of other homes use the same numbers, and that is fine because the address are not routed across the internet at all. 
+
+Public addresses are unique worldwide. Our home has one, assgined to our router by our internet provider, similarly a droplet has one of its own. 
+
+A droplet has a public address the whole internet can send to and a private address (something in 10.78.0.x) that only other machines on the same private network can reach. 
+
+### CIDR, the slash notation
+You will see 10.78.0.0/24 throughout the repo. That is a CIDR block: a range of addresses written as a starting address and a slash number. The slash number says how many of the 32 bits in the address are fixed. (These are IPv4 addresses, 32 bits long. IPv6 uses 128 bits; this project keeps it off on purpose, and IPv6: why adoption is slow, why this project is IPv4-only, and how to handle it safely explains why.) /24 fixes the first 24 bits (the 10.78.0 part), leaving 8 bits free, so the range is 10.78.0.0 to 10.78.0.255: 256 addresses, of which about 250 are usable. /16 would be 10.78.0.0 to 10.78.255.255, 65,536 addresses. /32 is a single address. 0.0.0.0/0 means "every address there is", and when you see it in a firewall rule you should look twice.
+
+### Ports and Listening
+An address gets a packet to a machine. A port gets it to the right program on the machine. A port is a number from 1 to 65535. Some are conventional : 22 for SSH, 80 for plain web traffic, 443 for HTTPS, 53 for DNS. 
+
+A program that wants to receive connections listens on a port. SSH listens on 22. A web server listens on 80 and 443. Nothing listens on a port unless a program asks to. A port nobody is listening to is closed : the machine answers a TCP connection attempt with a refusal (a reset), and may answer UDP with an "unreachable" message. A firewall is different: It drops the packet silently and the sender hears nothing. That difference is how a scanner tells "closed" from "filtered".
+
+An attacker can only talk to a program that is listening. A machine with no listening programs reachable from the internet has nothing to attach from the internet. This project's connectors have exactly that property. 
+
+### TCP and UDP 
+Two ways to send data to a port. 
+
+TCP sets up a connection first (a three step handshake), then both sides send data reliably, in order, with acknowledgements. SSH and HTTPS and most things you can name use TCP. Because there is a handshake, a firewall can tell the difference between "someone opening a new connection to us" and "a reply to a connection we opened".
+
+UDP just sends packets, no handshake, no gurantee. DNS, time sync (NTP) and video calls use it because speed matters more than perfection. Twingate's peer-to-peer tunnels use it too, which is why the connector firewall has a UDP rule the baseline does not. 
+
+### Inbound, Outbound and Why the direction matters
+From a machine's pov, every connection is either inbound(someone else started it, towards us) or outbound(we started it, toward someone else).
+
+The web works because of outbound connections. Your laptop opens a connection to a website, the reply comes back on that same connection. Your laptop never had to accept an inbound connection to browse the web. Your home router relies on this: it allows anything outbound and bloacks everything inbound, and you never notice bacause almost nothing you do is inbound. 
+
+A stateful firewall is one that remembers the connections that were allowed out, so it can let the replies back in without an explicit inbound rule. DigitalOcean's cloud firewalls are statful for replies. But a stateful firewall still needs an explicit outbound rule before the machine can start a new connection. Replies are free; new connections in either direction need a rule. 
+
+### What a firewall does ?
+A firewall is a list of rules that decides which packets pass. Each rule says a direction, a protocol, a port or range, and a source or destination. Anything no rule allows is dropped silently (the sender never hears back, which is why scanner reports "filtered" rather than "closed").
+
+At home the firewall is in your router and you mostly leave it alone. In the cloud, it is a thing you create and attach, and until you do, a droplet is wide open: every port is listening on is reachable from the whole internet. 
+
+This project use DigitalOcean's firewall, which sits outside the machine, in the provider's network. That matters: it works even if the machine's own software is misconfigured, the machine cannot turn it off from the inside. The baseline firewall has : 
+1. Inbound : no rules at all. Nothing from anywhere, on any port. 
+2. Outbound : Five narrow rules. TCP 443 (HTTPS, for the twingate controller and package downloads), TCP 80 (Ubuntu package mirrors), TCP and UDP 53 (DNS), UDP 123(time sync). No "allow all".
+
+### How a machine with zero inbound rules still worka
+The
