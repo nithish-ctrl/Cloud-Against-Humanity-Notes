@@ -44,4 +44,21 @@ This project use DigitalOcean's firewall, which sits outside the machine, in the
 2. Outbound : Five narrow rules. TCP 443 (HTTPS, for the twingate controller and package downloads), TCP 80 (Ubuntu package mirrors), TCP and UDP 53 (DNS), UDP 123(time sync). No "allow all".
 
 ### How a machine with zero inbound rules still worka
-The
+The connector program on the droplet opens an outbound connection to Twingate's service and keeps it open, the way the a chap app on your phone stays connected to its server. Outbound is allowed. When you want to reach the droplet, your laptop also connects outbound to Twingate. Twingate introduces two connections, checks that you are allowed to reach that specific machine on the specific port, and your SSH session rides the connection the droplet already opened. At no point did anything on the internet connect in to the droplet. Tt is the same trick your phone uses to receive notifications through a router that blocks all inbound traffic.
+
+### A VPS : Your own private network in the data centre
+A VPC (Virtual private cloud) is a private network that only your machines are on. You choose its address range (10.78.0.0/24 here), and every droplet you put in it get a private address from that range in addition to its public one. Machines in the same VPC can talk to each other over their private addresses without the traffic ever leaving the datacentre. 
+
+Two thing about the VPCs that suprise people : 
+1. The provider's firewall applies inside the VPC too. On DigitalOcean, two droplets on the same VPC still cannot talk to each other unless a firewall rule allows it. A compromised machine cannot wander over to its neihbours. That's why we add explicit rules for the two connectors to reach each other's SSH port. 
+2. Ranges must not overlap with anything you will connect to. If the VPC used 192.168.1.0/24 and so did the house, the packets would not know which way to go. Pick a range nobody else in your life uses.
+
+North-south traffic is between your network and the internet. East-west traffic is between machines inside your network. Home routers only filter north-south. A good cloud design filters both, and this one does.
+
+### DNS and NTP 
+DNS turns names into addresses (packages.twingate.com) into an IP. Every machine needs it, which is why port 53 is in outbound rules. 
+NTP keeps the clock right over UDP port 123. Clocks matter more than they seem: certificates(a certificate is the signed statement a TLS connection checks), tokens and log timstamps all stop working or stop being trustworthy when a machine's clock drifts. 
+
+### SSH 
+SSH is the program you use to get a command line on a remote Linux machine. It listens on TCP port 22. It can authenticate you with a password or with a key pair, this project allows keys only. Because passwords can be guessed and keys cannot. On these droplets, port 22 is not reachable from the internet at all, you reach it through twingate, over the private address. 
+ 
